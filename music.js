@@ -391,10 +391,14 @@ async function playNext(guildId) {
       '--no-check-certificates',
       '--prefer-free-formats',
       '--no-cache-dir',
-      '--socket-timeout', '10',
-      '--retries', '2'
+      '--socket-timeout', '30',
+      '--retries', '3',
+      '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      '--extractor-args', 'youtube:player_client=web',
+      '--http-chunk-size', '1048576'
     ], {
       windowsHide: true,
+
       stdio: ['ignore', 'pipe', 'pipe']
     });
 
