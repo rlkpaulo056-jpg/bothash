@@ -1,5 +1,24 @@
 process.env.FFMPEG_PATH = require('ffmpeg-static');
 
+const fs = require('fs');
+
+// Download standalone yt-dlp binary if not present
+(function ensureYtDlp() {
+  const binDir = require('path').join(__dirname, 'bin');
+  const binPath = require('path').join(binDir, 'yt-dlp');
+  if (!fs.existsSync(binPath)) {
+    try {
+      console.log('📥 Baixando yt-dlp standalone...');
+      if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
+      require('child_process').execSync('curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o "' + binPath + '" && chmod +x "' + binPath + '"', { stdio: 'inherit' });
+      console.log('✅ yt-dlp baixado!');
+    } catch (e) {
+      console.error('❌ Falha ao baixar yt-dlp:', e.message);
+    }
+  }
+})();
+
+
 const { createAudioPlayer, createAudioResource, AudioPlayerStatus, joinVoiceChannel, StreamType } = require("@discordjs/voice");
 const play = require("play-dl");
 const { getData, getTracks } = require("spotify-url-info")(fetch);
