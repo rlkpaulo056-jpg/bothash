@@ -1,43 +1,8 @@
 process.env.FFMPEG_PATH = require('ffmpeg-static');
 
-const fs = require('fs');
-
-// Download standalone yt-dlp binary if not present (uses Node.js https, no curl needed)
-function ensureYtDlp() {
-  const binDir = require('path').join(__dirname, 'bin');
-  const binPath = require('path').join(binDir, 'yt-dlp');
-  if (fs.existsSync(binPath)) return Promise.resolve();
-  console.log('📥 Baixando yt-dlp standalone...');
-  if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
-  return new Promise((resolve, reject) => {
-    function download(url, dest, redirects) {
-      if (redirects > 10) return reject(new Error('Too many redirects'));
-      const https = require('https');
-      const http = require('http');
-      const mod = url.startsWith('https') ? https : http;
-      mod.get(url, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          return download(res.headers.location, dest, redirects + 1);
-        }
-        if (res.statusCode !== 200) return reject(new Error('HTTP ' + res.statusCode));
-        const file = fs.createWriteStream(dest, { mode: 0o755 });
-        res.pipe(file);
-        file.on('finish', () => { file.close(); console.log('✅ yt-dlp baixado!'); resolve(); });
-        file.on('error', reject);
-      }).on('error', reject);
-    }
-    download('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux', binPath, 0);
-  }).catch(e => console.error('❌ Falha ao baixar yt-dlp:', e.message));
-}
-ensureYtDlp();
-
-
 const { createAudioPlayer, createAudioResource, AudioPlayerStatus, joinVoiceChannel, StreamType } = require("@discordjs/voice");
 const play = require("play-dl");
 const { getData, getTracks } = require("spotify-url-info")(fetch);
-const { spawn } = require("child_process");
-const path = require("path");
-const os = require("os");
 
 const queues = new Map();
 
@@ -378,51 +343,10 @@ async function playNext(guildId) {
     // Mata o processo anterior se existir
     killCurrentProcess(queue);
 
-    const ytdlpPath = os.platform() === 'win32' 
-      ? path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp.exe')
-      : path.join(__dirname, 'bin', 'yt-dlp');
-    const ytdlpProcess = spawn(ytdlpPath, [
-      song.url,
-      '--output', '-',
-      '--format', 'bestaudio[ext=webm]/bestaudio/best',
-      '--no-playlist',
-      '--no-warnings',
-      '--quiet',
-      '--no-check-certificates',
-      '--prefer-free-formats',
-      '--no-cache-dir',
-      '--socket-timeout', '10',
-      '--retries', '2'
-    ], {
-      windowsHide: true,
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
+    console.log(`🎵 Obtendo stream via play-dl: ${song.url}`);
+    const streamData = await play.stream(song.url);
 
-    let stderrData = '';
-    ytdlpProcess.stderr.on('data', (chunk) => {
-      stderrData += chunk.toString();
-    });
-
-    ytdlpProcess.on('error', (err) => {
-      console.error('❌ Erro no processo yt-dlp:', err.message);
-    });
-
-    ytdlpProcess.on('close', (code, signal) => {
-      // Só loga se foi encerrado por sinal (skip/stop) ou erro
-      if (signal) {
-        console.log(`📤 yt-dlp encerrado (sinal: ${signal})`);
-      } else if (code !== 0) {
-        console.error(`❌ yt-dlp falhou (código: ${code})`);
-        if (stderrData) {
-          console.error(`   stderr: ${stderrData.substring(0, 200)}`);
-        }
-      }
-      // código 0 = sucesso, não precisa logar
-    });
-
-    queue.currentProcess = ytdlpProcess;
-
-    const resource = createAudioResource(ytdlpProcess.stdout, {
+    const resource = createAudioResource(streamData.stream, {
       inputType: StreamType.Arbitrary,
       inlineVolume: false
     });
@@ -444,7 +368,9 @@ async function playNext(guildId) {
       playNext(guildId);
     }
   }
+
 }
+
 
 function killCurrentProcess(queue) {
   if (queue && queue.currentProcess && !queue.currentProcess.killed) {
