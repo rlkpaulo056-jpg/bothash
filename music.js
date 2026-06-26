@@ -348,7 +348,7 @@ async function playNext(guildId) {
 
     const ytdlpPath = os.platform() === 'win32' 
       ? path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp.exe')
-      : path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp');
+      : path.join(__dirname, 'bin', 'yt-dlp');
     const ytdlpProcess = spawn(ytdlpPath, [
       song.url,
       '--output', '-',
