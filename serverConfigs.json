@@ -1,0 +1,76 @@
+{
+  "default": {
+    "prefix": "!",
+    "adChannelIds": [],
+    "logChannelIds": {
+      "entradas": "",
+      "saidas": "",
+      "banimentos": "",
+      "geral": ""
+    },
+    "registro": {
+      "painelCanalId": "",
+      "logCanalId": "",
+      "cargoLiderId": "",
+      "cargoAprovadoId": "",
+      "cargoRecrutadorId": ""
+    },
+    "verificacao": {
+      "cargoVerificadoId": ""
+    },
+    "tickets": {
+      "logChannelId": "",
+      "cargoEquipeId": ""
+    }
+  },
+  "SERVIDOR_1": {
+    "serverGuildId": "SEU_GUILD_ID_AQUI",
+    "prefix": "!",
+    "adChannelIds": ["CANAL_ID_1", "CANAL_ID_2"],
+    "logChannelIds": {
+      "entradas": "ID_CANAL_ENTRADAS",
+      "saidas": "ID_CANAL_SAIDAS",
+      "banimentos": "ID_CANAL_BANIMENTOS",
+      "geral": "ID_CANAL_LOGS_GERAL"
+    },
+    "registro": {
+      "painelCanalId": "ID_CANAL_PAINEL_REGISTRO",
+      "logCanalId": "ID_CANAL_LOG_REGISTRO",
+      "cargoLiderId": "ID_CARGO_LIDER",
+      "cargoAprovadoId": "ID_CARGO_APROVADO",
+      "cargoRecrutadorId": "ID_CARGO_RECRUTADOR"
+    },
+    "verificacao": {
+      "cargoVerificadoId": "ID_CARGO_VERIFICADO"
+    },
+    "tickets": {
+      "logChannelId": "ID_CANAL_LOG_TICKETS",
+      "cargoEquipeId": "ID_CARGO_STAFF"
+    }
+  },
+  "SERVIDOR_2": {
+    "serverGuildId": "OUTRO_GUILD_ID_AQUI",
+    "prefix": "!",
+    "adChannelIds": [],
+    "logChannelIds": {
+      "entradas": "",
+      "saidas": "",
+      "banimentos": "",
+      "geral": ""
+    },
+    "registro": {
+      "painelCanalId": "",
+      "logCanalId": "",
+      "cargoLiderId": "",
+      "cargoAprovadoId": "",
+      "cargoRecrutadorId": ""
+    },
+    "verificacao": {
+      "cargoVerificadoId": ""
+    },
+    "tickets": {
+      "logChannelId": "",
+      "cargoEquipeId": ""
+    }
+  }
+}
