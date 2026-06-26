@@ -2,21 +2,34 @@ process.env.FFMPEG_PATH = require('ffmpeg-static');
 
 const fs = require('fs');
 
-// Download standalone yt-dlp binary if not present
-(function ensureYtDlp() {
+// Download standalone yt-dlp binary if not present (uses Node.js https, no curl needed)
+function ensureYtDlp() {
   const binDir = require('path').join(__dirname, 'bin');
   const binPath = require('path').join(binDir, 'yt-dlp');
-  if (!fs.existsSync(binPath)) {
-    try {
-      console.log('📥 Baixando yt-dlp standalone...');
-      if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
-      require('child_process').execSync('curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o "' + binPath + '" && chmod +x "' + binPath + '"', { stdio: 'inherit' });
-      console.log('✅ yt-dlp baixado!');
-    } catch (e) {
-      console.error('❌ Falha ao baixar yt-dlp:', e.message);
+  if (fs.existsSync(binPath)) return Promise.resolve();
+  console.log('📥 Baixando yt-dlp standalone...');
+  if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
+  return new Promise((resolve, reject) => {
+    function download(url, dest, redirects) {
+      if (redirects > 10) return reject(new Error('Too many redirects'));
+      const https = require('https');
+      const http = require('http');
+      const mod = url.startsWith('https') ? https : http;
+      mod.get(url, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          return download(res.headers.location, dest, redirects + 1);
+        }
+        if (res.statusCode !== 200) return reject(new Error('HTTP ' + res.statusCode));
+        const file = fs.createWriteStream(dest, { mode: 0o755 });
+        res.pipe(file);
+        file.on('finish', () => { file.close(); console.log('✅ yt-dlp baixado!'); resolve(); });
+        file.on('error', reject);
+      }).on('error', reject);
     }
-  }
-})();
+    download('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux', binPath, 0);
+  }).catch(e => console.error('❌ Falha ao baixar yt-dlp:', e.message));
+}
+ensureYtDlp();
 
 
 const { createAudioPlayer, createAudioResource, AudioPlayerStatus, joinVoiceChannel, StreamType } = require("@discordjs/voice");
