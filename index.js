@@ -96,9 +96,15 @@ async function limparCanal(message) {
 // PROCESSAR MENSAGENS
 // ──────────────────────────────────────────
 
+// Deduplicação: ignora mensagens já processadas (evita respostas duplicadas)
+const _processedMsgs = new Set();
+
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith(PREFIX)) return;
+  if (_processedMsgs.has(message.id)) return;
+  _processedMsgs.add(message.id);
+  setTimeout(() => _processedMsgs.delete(message.id), 10000);
 
   // Intercepta replies para apagar automaticamente após 25 segundos
   const originalReply = message.reply.bind(message);
