@@ -396,14 +396,25 @@ async function playNext(guildId) {
     // Mata o processo anterior se existir
     killCurrentProcess(queue);
 
-    // Stream via @distube/ytdl-core com suporte a cookies
-    const ytdl = require("@distube/ytdl-core");
-    const ytdlOptions = { filter: "audioonly", quality: "highestaudio", highWaterMark: 1 << 25 };
-    if (_ytCookie) ytdlOptions.requestOptions = { headers: { cookie: _ytCookie } };
-    const ytStream = ytdl(song.url, ytdlOptions);
-    queue.currentProcess = ytStream;
+    // Stream via yt-dlp (mais robusto, suporta cookies e anti-bot do YouTube)
+    const ytdlpPath = require("path").join(process.cwd(), "bin", "yt-dlp");
+    const ytdlpArgs = [
+      song.url,
+      "-f", "bestaudio[ext=webm]/bestaudio/best",
+      "--no-playlist",
+      "-o", "-",
+      "--quiet",
+      "--no-warnings",
+      "--no-cache-dir"
+    ];
+    if (_ytCookie) {
+      ytdlpArgs.push("--add-header", "Cookie:" + _ytCookie);
+    }
+    const ytdlpProc = spawn(ytdlpPath, ytdlpArgs, { stdio: ["ignore", "pipe", "pipe"] });
+    ytdlpProc.stderr.on("data", function(d) { console.error("[yt-dlp]", d.toString().trim()); });
+    queue.currentProcess = ytdlpProc;
 
-    const resource = createAudioResource(ytStream, {
+    const resource = createAudioResource(ytdlpProc.stdout, {
       inputType: StreamType.Arbitrary,
       inlineVolume: false
     });
