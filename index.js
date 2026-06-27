@@ -105,6 +105,12 @@ client.on('messageCreate', async (message) => {
   if (_processedMsgs.has(message.id)) return;
   _processedMsgs.add(message.id);
   setTimeout(() => _processedMsgs.delete(message.id), 10000);
+  // Lock distribuído via reação: evita duplicação entre múltiplas instâncias
+  try {
+    await message.react('⚙️');
+    const rxn = message.reactions.cache.get('⚙️');
+    if (rxn && rxn.count > 1) { message.reactions.cache.get('⚙️')?.users.remove(client.user.id).catch(()=>{}); return; }
+  } catch (e) { }
 
   // Intercepta replies para apagar automaticamente após 25 segundos
   const originalReply = message.reply.bind(message);
