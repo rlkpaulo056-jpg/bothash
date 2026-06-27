@@ -29,7 +29,7 @@ function ensureYtDlp() {
     download('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux', binPath, 0);
   }).catch(e => console.error('❌ Falha ao baixar yt-dlp:', e.message));
 }
-ensureYtDlp();
+const _ytDlpReady = ensureYtDlp();
 
 
 const { createAudioPlayer, createAudioResource, AudioPlayerStatus, joinVoiceChannel, StreamType } = require("@discordjs/voice");
@@ -375,6 +375,9 @@ async function playNext(guildId) {
   }
 
   try {
+    // Aguarda download do yt-dlp se ainda não terminou
+    await _ytDlpReady;
+
     // Mata o processo anterior se existir
     killCurrentProcess(queue);
 
