@@ -375,58 +375,15 @@ async function playNext(guildId) {
   }
 
   try {
-    // Aguarda download do yt-dlp se ainda não terminou
-    await _ytDlpReady;
-
     // Mata o processo anterior se existir
     killCurrentProcess(queue);
 
-    const ytdlpPath = os.platform() === 'win32' 
-      ? path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp.exe')
-      : path.join(__dirname, 'bin', 'yt-dlp');
-    const ytdlpProcess = spawn(ytdlpPath, [
-      song.url,
-      '--output', '-',
-      '--format', 'bestaudio[ext=webm]/bestaudio/best',
-      '--no-playlist',
-      '--no-warnings',
-      '--quiet',
-      '--no-check-certificates',
-      '--prefer-free-formats',
-      '--no-cache-dir',
-      '--socket-timeout', '10',
-      '--retries', '2'
-    ], {
-      windowsHide: true,
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
+    // Stream via play-dl (não precisa de yt-dlp, funciona em servidores)
+    const streamData = await play.stream(song.url, { quality: 2 });
+    queue.currentProcess = streamData.stream;
 
-    let stderrData = '';
-    ytdlpProcess.stderr.on('data', (chunk) => {
-      stderrData += chunk.toString();
-    });
-
-    ytdlpProcess.on('error', (err) => {
-      console.error('❌ Erro no processo yt-dlp:', err.message);
-    });
-
-    ytdlpProcess.on('close', (code, signal) => {
-      // Só loga se foi encerrado por sinal (skip/stop) ou erro
-      if (signal) {
-        console.log(`📤 yt-dlp encerrado (sinal: ${signal})`);
-      } else if (code !== 0) {
-        console.error(`❌ yt-dlp falhou (código: ${code})`);
-        if (stderrData) {
-          console.error(`   stderr: ${stderrData.substring(0, 200)}`);
-        }
-      }
-      // código 0 = sucesso, não precisa logar
-    });
-
-    queue.currentProcess = ytdlpProcess;
-
-    const resource = createAudioResource(ytdlpProcess.stdout, {
-      inputType: StreamType.Arbitrary,
+    const resource = createAudioResource(streamData.stream, {
+      inputType: streamData.type,
       inlineVolume: false
     });
 
@@ -450,12 +407,14 @@ async function playNext(guildId) {
 }
 
 function killCurrentProcess(queue) {
-  if (queue && queue.currentProcess && !queue.currentProcess.killed) {
+  if (queue && queue.currentProcess) {
     try {
-      queue.currentProcess.kill();
-    } catch (err) {
-      // Erro ao matar processo - pode já ter terminado
-    }
+      if (typeof queue.currentProcess.kill === "function" && !queue.currentProcess.killed) {
+        queue.currentProcess.kill();
+      } else if (typeof queue.currentProcess.destroy === "function") {
+        queue.currentProcess.destroy();
+      }
+    } catch (err) {}
     queue.currentProcess = null;
   }
 }
