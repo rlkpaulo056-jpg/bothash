@@ -34,6 +34,12 @@ const _ytDlpReady = ensureYtDlp();
 
 const { createAudioPlayer, createAudioResource, AudioPlayerStatus, joinVoiceChannel, StreamType } = require("@discordjs/voice");
 const play = require("play-dl");
+
+// Configura cookies do YouTube se disponível (necessário em servidores cloud)
+if (process.env.YOUTUBE_COOKIE) {
+  play.setToken({ youtube: { cookie: process.env.YOUTUBE_COOKIE } });
+  console.log("🍪 YouTube cookies configurados!");
+}
 const { getData, getTracks } = require("spotify-url-info")(fetch);
 const { spawn } = require("child_process");
 const path = require("path");
