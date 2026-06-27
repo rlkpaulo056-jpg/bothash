@@ -35,22 +35,16 @@ const _ytDlpReady = ensureYtDlp();
 const { createAudioPlayer, createAudioResource, AudioPlayerStatus, joinVoiceChannel, StreamType } = require("@discordjs/voice");
 const play = require("play-dl");
 
-// Converte Netscape cookies.txt para string HTTP se necessario
-function parseCookieEnv(raw) {
-  if (!raw) return null;
-  if (raw.indexOf(String.fromCharCode(9)) !== -1) {
-    return raw.split(String.fromCharCode(10))
-      .filter(function(l) { return l && l.charAt(0) !== "#"; })
-      .map(function(l) { var p = l.split(String.fromCharCode(9)); return p.length >= 7 ? p[5] + "=" + p[6].trim() : null; })
-      .filter(Boolean).join("; ");
+// Salva cookie do YouTube num arquivo temporario para o yt-dlp
+var _ytCookieFile = null;
+if (process.env.YOUTUBE_COOKIE) {
+  _ytCookieFile = require("os").tmpdir() + "/yt-cookies.txt";
+  var rawCookie = process.env.YOUTUBE_COOKIE;
+  if (rawCookie.indexOf("# Netscape HTTP Cookie File") === -1) {
+    rawCookie = "# Netscape HTTP Cookie File" + String.fromCharCode(10) + rawCookie;
   }
-  return raw.trim();
-}
-
-const _ytCookie = parseCookieEnv(process.env.YOUTUBE_COOKIE);
-if (_ytCookie) {
-  play.setToken({ youtube: { cookie: _ytCookie } });
-  console.log("Cookies YouTube configurados!");
+  require("fs").writeFileSync(_ytCookieFile, rawCookie);
+  console.log("Cookies YouTube salvos em " + _ytCookieFile);
 }
 const { getData, getTracks } = require("spotify-url-info")(fetch);
 const { spawn } = require("child_process");
@@ -407,8 +401,8 @@ async function playNext(guildId) {
       "--no-warnings",
       "--no-cache-dir"
     ];
-    if (_ytCookie) {
-      ytdlpArgs.push("--add-header", "Cookie:" + _ytCookie);
+    if (_ytCookieFile) {
+      ytdlpArgs.push("--cookies", _ytCookieFile);
     }
     const ytdlpProc = spawn(ytdlpPath, ytdlpArgs, { stdio: ["ignore", "pipe", "pipe"] });
     ytdlpProc.stderr.on("data", function(d) { console.error("[yt-dlp]", d.toString().trim()); });
