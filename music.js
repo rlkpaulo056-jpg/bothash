@@ -35,10 +35,24 @@ const _ytDlpReady = ensureYtDlp();
 const { createAudioPlayer, createAudioResource, AudioPlayerStatus, joinVoiceChannel, StreamType } = require("@discordjs/voice");
 const play = require("play-dl");
 
-// Configura cookies do YouTube se disponível (necessário em servidores cloud)
-if (process.env.YOUTUBE_COOKIE) {
-  play.setToken({ youtube: { cookie: process.env.YOUTUBE_COOKIE } });
-  console.log("🍪 YouTube cookies configurados!");
+// Converte Netscape cookies.txt para string HTTP se necessário
+function parseCookieEnv(raw) {
+  if (!raw) return null;
+  if (raw.includes('	')) {
+    // Formato Netscape: converte para "key=value; key2=value2"
+    return raw.split('
+')
+      .filter(l => l && !l.startsWith('#'))
+      .map(l => { const p = l.split('	'); return p.length >= 7 ? p[5] + '=' + p[6].trim() : null; })
+      .filter(Boolean).join('; ');
+  }
+  return raw.trim();
+}
+
+const _ytCookie = parseCookieEnv(process.env.YOUTUBE_COOKIE);
+if (_ytCookie) {
+  play.setToken({ youtube: { cookie: _ytCookie } });
+  console.log('🍪 YouTube cookies configurados!');
 }
 const { getData, getTracks } = require("spotify-url-info")(fetch);
 const { spawn } = require("child_process");
@@ -384,12 +398,15 @@ async function playNext(guildId) {
     // Mata o processo anterior se existir
     killCurrentProcess(queue);
 
-    // Stream via play-dl (não precisa de yt-dlp, funciona em servidores)
-    const streamData = await play.stream(song.url, { quality: 2 });
-    queue.currentProcess = streamData.stream;
+    // Stream via @distube/ytdl-core com suporte a cookies
+    const ytdl = require("@distube/ytdl-core");
+    const ytdlOptions = { filter: "audioonly", quality: "highestaudio", highWaterMark: 1 << 25 };
+    if (_ytCookie) ytdlOptions.requestOptions = { headers: { cookie: _ytCookie } };
+    const ytStream = ytdl(song.url, ytdlOptions);
+    queue.currentProcess = ytStream;
 
-    const resource = createAudioResource(streamData.stream, {
-      inputType: streamData.type,
+    const resource = createAudioResource(ytStream, {
+      inputType: StreamType.Arbitrary,
       inlineVolume: false
     });
 
