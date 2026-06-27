@@ -35,16 +35,14 @@ const _ytDlpReady = ensureYtDlp();
 const { createAudioPlayer, createAudioResource, AudioPlayerStatus, joinVoiceChannel, StreamType } = require("@discordjs/voice");
 const play = require("play-dl");
 
-// Converte Netscape cookies.txt para string HTTP se necessário
+// Converte Netscape cookies.txt para string HTTP se necessario
 function parseCookieEnv(raw) {
   if (!raw) return null;
-  if (raw.includes('	')) {
-    // Formato Netscape: converte para "key=value; key2=value2"
-    return raw.split('
-')
-      .filter(l => l && !l.startsWith('#'))
-      .map(l => { const p = l.split('	'); return p.length >= 7 ? p[5] + '=' + p[6].trim() : null; })
-      .filter(Boolean).join('; ');
+  if (raw.indexOf(String.fromCharCode(9)) !== -1) {
+    return raw.split(String.fromCharCode(10))
+      .filter(function(l) { return l && l.charAt(0) !== "#"; })
+      .map(function(l) { var p = l.split(String.fromCharCode(9)); return p.length >= 7 ? p[5] + "=" + p[6].trim() : null; })
+      .filter(Boolean).join("; ");
   }
   return raw.trim();
 }
@@ -52,7 +50,7 @@ function parseCookieEnv(raw) {
 const _ytCookie = parseCookieEnv(process.env.YOUTUBE_COOKIE);
 if (_ytCookie) {
   play.setToken({ youtube: { cookie: _ytCookie } });
-  console.log('🍪 YouTube cookies configurados!');
+  console.log("Cookies YouTube configurados!");
 }
 const { getData, getTracks } = require("spotify-url-info")(fetch);
 const { spawn } = require("child_process");
